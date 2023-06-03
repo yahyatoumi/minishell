@@ -37,7 +37,7 @@ int how_many_dollars(char *str)
 	return (x);
 }
 
-void addtoarr(char **arr, char *new_value)
+void append_to_value_arr(char **arr, char *new_value)
 {
 	int i;
 
@@ -84,42 +84,56 @@ char *ft_strdup_2(char *start, int len)
 	return (ret);
 }
 
-void	dup_3_intial(t_params_2 *p, char *start)
+void dup_3_while(t_params_2 *p, char *start)
 {
-	p->i = 0;
-	p->j = 0;
-	p->d_lock = 0;
-	p->s_lock = 0;
-	p->holder = (char *)malloc(ft_strlen(start) + 1);
+	while (start[p->i] && ft_isalpha(start[p->i]))
+	{
+		if (p->d_lock && start[p->i] == '\'')
+			p->holder[p->j++] = start[p->i];
+		else if (p->s_lock && start[p->i] == '"')
+			p->holder[p->j++] = start[p->i];
+		else if (!p->d_lock && start[p->i] == '"')
+			p->d_lock = 1;
+		else if (!p->s_lock && start[p->i] == '\'')
+			p->s_lock = 1;
+		else if (p->d_lock && start[p->i] == '"')
+			p->d_lock = 0;
+		else if (p->s_lock && start[p->i] == '\'')
+			p->s_lock = 0;
+		else if (!p->s_lock && !p->d_lock && start[p->i] == ' ')
+			break;
+		else
+			p->holder[p->j++] = start[p->i];
+		p->i++;
+	}
 }
 
 char *ft_strdup_3(char *start, int *add)
 {
 	t_params_2 p;
 
-	dup_3_intial(&p, start);
-	while (start[p.i] && ft_isalpha(start[p.i]))
-	{
-		if (p.d_lock && start[p.i] == '\'')
-			p.holder[p.j++] = start[p.i];
-		else if (p.s_lock && start[p.i] == '"')
-			p.holder[p.j++] = start[p.i];
-		else if (!p.d_lock && start[p.i] == '"')
-			p.d_lock = 1;
-		else if (!p.s_lock && start[p.i] == '\'')
-			p.s_lock = 1;
-		else if (p.d_lock && start[p.i] == '"')
-			p.d_lock = 0;
-		else if (p.s_lock && start[p.i] == '\'')
-			p.s_lock = 0;
-		else if (!p.s_lock && !p.d_lock && start[p.i] == ' ')
-			break;
-		else
-			p.holder[p.j++] = start[p.i];
-		p.i++;
-	}
+	p.i = 0;
+	p.j = 0;
+	p.d_lock = 0;
+	p.s_lock = 0;
+	p.holder = (char *)malloc(ft_strlen(start) + 1);
+	dup_3_while(&p, start);
 	p.holder[p.j] = 0;
-	return (*add = *add + 0, ft_strdup(p.holder));
+	*add = *add + 0;
+	return (ft_strdup(p.holder));
+}
+
+t_token *make_tokens_0(char *holder, int type)
+{
+	t_token *token;
+
+	token = (t_token *)malloc(sizeof(*token));
+	if (!token)
+		return 0;
+	token->token_chars = ft_strdup(holder);
+	token->type = type;
+	token->next = NULL;
+	return (token);
 }
 
 t_token *make_tokens_1(char *holder, char *word_start, int *j)
@@ -130,14 +144,7 @@ t_token *make_tokens_1(char *holder, char *word_start, int *j)
 	token = NULL;
 	token2 = NULL;
 	if (ft_strlen(holder))
-	{
-		token = (t_token *)malloc(sizeof(*token));
-		if (!token)
-			return 0;
-		token->token_chars = ft_strdup(holder);
-		token->type = 0;
-		token->next = NULL;
-	}
+		token = make_tokens_0(holder, 0);
 	token2 = (t_token *)malloc(sizeof(*token));
 	if (!token2)
 		return 0;
@@ -163,14 +170,8 @@ t_token *make_tokens_2(char *holder, char *word_start, int *j)
 	token = NULL;
 	token2 = NULL;
 	if (ft_strlen(holder))
-	{
-		token = (t_token *)malloc(sizeof(*token));
-		if (!token)
-			return 0;
-		token->token_chars = ft_strdup(holder);
-		token->type = 0;
-		token->next = NULL;
-	}
+		token = make_tokens_0(holder, 0);
+
 	token2 = (t_token *)malloc(sizeof(*token));
 	if (!token2)
 		return 0;
@@ -196,14 +197,7 @@ t_token *make_tokens_3(char *holder, int *j)
 	token = NULL;
 	token2 = NULL;
 	if (ft_strlen(holder))
-	{
-		token = (t_token *)malloc(sizeof(*token));
-		if (!token)
-			return 0;
-		token->token_chars = ft_strdup(holder);
-		token->type = 0;
-		token->next = NULL;
-	}
+		token = make_tokens_0(holder, 0);
 	token2 = (t_token *)malloc(sizeof(*token));
 	if (!token2)
 		return 0;
@@ -221,6 +215,32 @@ t_token *make_tokens_3(char *holder, int *j)
 	return token;
 }
 
+void token_4_hepler(t_token **token, t_token **token2, char *word_start, int *j)
+{
+	(*token2)->token_chars = ft_strdup_2(word_start, 2);
+	if ((*token))
+	{
+		(*token)->next = (*token2);
+		*j += ft_strlen((*token)->token_chars);
+	}
+	else
+		(*token) = (*token2);
+	*j += ft_strlen((*token2)->token_chars);
+}
+
+void token_4_hepler_2(t_token **token, t_token **token2, char *word_start, int *j)
+{
+	(*token2)->token_chars = ft_strdup_2(word_start, 1);
+	if ((*token))
+	{
+		(*token)->next = (*token2);
+		*j += ft_strlen((*token)->token_chars);
+	}
+	else
+		(*token) = (*token2);
+	*j += ft_strlen((*token2)->token_chars);
+}
+
 t_token *make_tokens_4(char *holder, char *word_start, int *j)
 {
 	t_token *token;
@@ -229,51 +249,20 @@ t_token *make_tokens_4(char *holder, char *word_start, int *j)
 	token = NULL;
 	token2 = NULL;
 	if (ft_strlen(holder))
-	{
-		token = (t_token *)malloc(sizeof(*token));
-		if (!token)
-			return 0;
-		token->token_chars = ft_strdup(holder);
-		token->type = 0;
-		token->next = NULL;
-	}
+		token = make_tokens_0(holder, 0);
+	token2 = (t_token *)malloc(sizeof(*token2));
+	if (!token2)
+		return 0;
+	token2->type = 1;
+	token2->next = NULL;
 	if (word_start[1] == word_start[0])
 	{
-		token2 = (t_token *)malloc(sizeof(*token2));
-		if (!token2)
-			return 0;
-		token2->token_chars = ft_strdup_2(word_start, 2);
-		token2->type = 1;
-		token2->next = NULL;
-		if (token)
-		{
-			token->next = token2;
-			*j += ft_strlen(token->token_chars);
-		}
-		else
-			token = token2;
-		*j += ft_strlen(token2->token_chars);
+		token_4_hepler(&token, &token2, word_start, j);
 		return token;
 	}
 	else
 	{
-		printf("         money       money     money --%s--\n", holder);
-		token2 = (t_token *)malloc(sizeof(*token2));
-		if (!token2)
-			return 0;
-		token2->token_chars = ft_strdup_2(word_start, 1);
-		token2->type = 1;
-		token2->next = NULL;
-		if (token)
-		{
-			token->next = token2;
-			*j += ft_strlen(token->token_chars);
-			printf("len == %i\n", (int)ft_strlen(token->token_chars));
-		}
-		else
-			token = token2;
-		*j += ft_strlen(token2->token_chars);
-		printf("len == %i\n", (int)ft_strlen(token2->token_chars));
+		token_4_hepler_2(&token, &token2, word_start, j);
 		return token;
 	}
 }
@@ -342,21 +331,9 @@ int ft_newtok_5(int *j, t_params_1 *params)
 	return 0;
 }
 
-int ft_newtok_while_3(char *str, t_params_1 *p, int *j)
+int ft_newtok_while_3_1(char *str, t_params_1 *p, int *j)
 {
-	if (p->d_lock && str[p->i] == '"')
-	{
-		if (ft_newtok_4(j, p))
-			return (3);
-		return (4);
-	}
-	else if (p->s_lock && str[p->i] == '\'')
-	{
-		if (ft_newtok_5(j, p))
-			return (3);
-		return 4;
-	}
-	else if (str[p->i] == '$' && ft_isalpha(str[p->i + 1]) && !p->s_lock && !p->d_lock)
+	if (str[p->i] == '$' && ft_isalpha(str[p->i + 1]) && !p->s_lock && !p->d_lock)
 		return (p->token = make_tokens_1(p->holder, str + p->i, j), 1);
 	else if (str[p->i] == '$' && (str[p->i + 1] == '"' || str[p->i + 1] == '\'') && !p->s_lock && !p->d_lock)
 		return (p->token = make_tokens_2(p->holder, str + p->i, j), 1);
@@ -364,6 +341,25 @@ int ft_newtok_while_3(char *str, t_params_1 *p, int *j)
 		return (p->token = make_tokens_3(p->holder, j), 1);
 	else if (!p->s_lock && !p->d_lock && (str[p->i] == '>' || str[p->i] == '<'))
 		return (p->token = make_tokens_4(p->holder, str + (p->i), j), 1);
+	return 0;
+}
+
+int ft_newtok_while_3(char *str, t_params_1 *p, int *j)
+{
+	if (p->d_lock && str[p->i] == '"')
+	{
+		if (ft_newtok_4(j, p))
+			return (3);
+		return (2);
+	}
+	else if (p->s_lock && str[p->i] == '\'')
+	{
+		if (ft_newtok_5(j, p))
+			return (3);
+		return 2;
+	}
+	else if (ft_newtok_while_3_1(str, p, j))
+		return (1);
 	else if (!p->s_lock && !p->d_lock && str[p->i] == ' ')
 		return (2);
 	if (str[p->i] == '$')
@@ -414,11 +410,6 @@ t_token *ft_newtok_while(char *word_start, t_params_1 *params, int *j)
 			helper = ft_newtok_while_3(word_start, params, j);
 			if (helper == 1)
 				return params->token;
-			if (helper == 4)
-			{
-				params->i++;
-				continue;
-			}
 			if (helper)
 				break;
 		}
@@ -594,7 +585,6 @@ t_cmd *ft_newcmd(char *head_token)
 	new_cmd = (t_cmd *)malloc(sizeof(*new_cmd));
 	if (!new_cmd)
 		return (0);
-	// printf("----allocated hehe\n");
 	new_cmd->head_token = ft_newtok(head_token, &will_not_use);
 	new_cmd->next = NULL;
 	return (new_cmd);
@@ -623,40 +613,6 @@ void replace_char(char *str, char c1, char c2)
 			str[i] = c2;
 		i++;
 	}
-}
-
-void _free(t_cmd *cmds, char *input, char **splitted, t_fargs *fargs)
-{
-	t_token *t_holder;
-	t_cmd *c_holder;
-	int i;
-
-	while (cmds)
-	{
-		c_holder = cmds->next;
-		while (cmds->head_token)
-		{
-			t_holder = cmds->head_token->next;
-			free(cmds->head_token->token_chars);
-			free(cmds->head_token);
-			cmds->head_token = t_holder;
-		}
-		free(cmds);
-		cmds = c_holder;
-	}
-	i = 0;
-	while (splitted[i])
-		free(splitted[i++]);
-	i = 0;
-	while (fargs[i].args)
-	{
-		free(fargs[i].args);
-		free(fargs[i].rdrs);
-		i++;
-	}
-	free(fargs);
-	free(splitted);
-	free(input);
 }
 
 int ft_lstsize(t_cmd *cmd)
@@ -699,7 +655,10 @@ int ft_count_rdrs(t_token *start)
 	len = 0;
 	while (tmp)
 	{
-		if (!strcmp(tmp->token_chars, ">>") || !strcmp(tmp->token_chars, ">") || !strcmp(tmp->token_chars, "<<") || !strcmp(tmp->token_chars, "<"))
+		if (!strcmp(tmp->token_chars, ">>")
+			|| !strcmp(tmp->token_chars, ">")
+			|| !strcmp(tmp->token_chars, "<<")
+			|| !strcmp(tmp->token_chars, "<"))
 		{
 			len++;
 			if (tmp->next)
@@ -865,7 +824,7 @@ void inside_while_expand(t_params_4 *p, char **expanded_values)
 		p->i += len_till_dollar(p->cpy + p->i + 1) + 1;
 	else if (p->cpy[p->i] == '$' && ft_isalpha(p->cpy[p->i + 1]))
 	{
-		addtoarr(expanded_values, ft_strdup(""));
+		append_to_value_arr(expanded_values, ft_strdup(""));
 		p->i++;
 	}
 	else
@@ -890,7 +849,7 @@ int ft_expand2(char **word, char **env, char **expanded_values)
 				if (!ft_strncmp(env[p.j], p.cpy + p.i + 1, len_till_dollar(p.cpy + p.i + 1)) && env[p.j][len_till_dollar(p.cpy + p.i + 1)] == '=')
 				{
 					p.did = 1;
-					addtoarr(expanded_values, ft_strdup(env[p.j] + len_till_dollar(p.cpy + p.i + 1) + 1));
+					append_to_value_arr(expanded_values, ft_strdup(env[p.j] + len_till_dollar(p.cpy + p.i + 1) + 1));
 					break;
 				}
 				p.j++;
@@ -1148,7 +1107,7 @@ void print_struct(t_fargs *fargs)
 
 int check_pipes(char *line);
 
-int	pipes_while(char *line, int d_lock, int s_lock, int i)
+int pipes_while(char *line, int d_lock, int s_lock, int i)
 {
 	while (line[i])
 	{
@@ -1191,7 +1150,7 @@ int check_pipes(char *line)
 	return 0;
 }
 
-void	split_while_1(t_params_7 *p, char **arr, int *types)
+void split_while_1(t_params_7 *p, char **arr, int *types)
 {
 	while (arr[p->i])
 	{
@@ -1209,7 +1168,7 @@ void	split_while_1(t_params_7 *p, char **arr, int *types)
 	}
 }
 
-void	split_while_2(t_params_7 *p, char **arr, int *types)
+void split_while_2(t_params_7 *p, char **arr, int *types)
 {
 	while (arr[p->i])
 	{
@@ -1419,7 +1378,7 @@ int main(int c, char **v, char **env)
 			ft_execute(fargs, &env_cpy, &exp);
 			printf("status = %d\n", status);
 			// print_export(env_cpy, exp);
-			_free(cmd_head_holder, input, splited_cmds, fargs);
+			// _free(cmd_head_holder, input, splited_cmds, fargs);
 		}
 	}
 }
