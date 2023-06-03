@@ -37,7 +37,7 @@ int how_many_dollars(char *str)
 	return (x);
 }
 
-void append_to_value_arr(char **arr, char *new_value)
+void addtoarr(char **arr, char *new_value)
 {
 	int i;
 
@@ -84,15 +84,20 @@ char *ft_strdup_2(char *start, int len)
 	return (ret);
 }
 
+void	dup_3_intial(t_params_2 *p, char *start)
+{
+	p->i = 0;
+	p->j = 0;
+	p->d_lock = 0;
+	p->s_lock = 0;
+	p->holder = (char *)malloc(ft_strlen(start) + 1);
+}
+
 char *ft_strdup_3(char *start, int *add)
 {
 	t_params_2 p;
 
-	p.i = 0;
-	p.j = 0;
-	p.d_lock = 0;
-	p.s_lock = 0;
-	p.holder = (char *)malloc(ft_strlen(start) + 1);
+	dup_3_intial(&p, start);
 	while (start[p.i] && ft_isalpha(start[p.i]))
 	{
 		if (p.d_lock && start[p.i] == '\'')
@@ -114,8 +119,7 @@ char *ft_strdup_3(char *start, int *add)
 		p.i++;
 	}
 	p.holder[p.j] = 0;
-	*add = *add + 0;
-	return (ft_strdup(p.holder));
+	return (*add = *add + 0, ft_strdup(p.holder));
 }
 
 t_token *make_tokens_1(char *holder, char *word_start, int *j)
@@ -344,13 +348,13 @@ int ft_newtok_while_3(char *str, t_params_1 *p, int *j)
 	{
 		if (ft_newtok_4(j, p))
 			return (3);
-		return (2);
+		return (4);
 	}
 	else if (p->s_lock && str[p->i] == '\'')
 	{
 		if (ft_newtok_5(j, p))
 			return (3);
-		return 2;
+		return 4;
 	}
 	else if (str[p->i] == '$' && ft_isalpha(str[p->i + 1]) && !p->s_lock && !p->d_lock)
 		return (p->token = make_tokens_1(p->holder, str + p->i, j), 1);
@@ -401,16 +405,19 @@ t_token *ft_newtok_while(char *word_start, t_params_1 *params, int *j)
 		if (helper == 1)
 			break;
 		else if (helper == 2)
+		{
+			printf("19\n");
 			helper = 2;
+		}
 		else
 		{
 			helper = ft_newtok_while_3(word_start, params, j);
 			if (helper == 1)
 				return params->token;
-			if (helper == 3)
+			if (helper == 4)
 			{
-				*j -= 1;
-				return params->token;
+				params->i++;
+				continue;
 			}
 			if (helper)
 				break;
@@ -716,7 +723,7 @@ void inside_while(t_params_3 *p)
 		{
 			p->tmp_token = p->tmp_token->next;
 			p->fargs[p->i].rdrs[p->x] = p->tmp_token->token_chars;
-			p->fargs[p->i].types[p->x++] = p->tmp_token->type;
+			p->fargs[p->i].types2[p->x++] = p->tmp_token->type;
 		}
 	}
 	else
@@ -858,7 +865,7 @@ void inside_while_expand(t_params_4 *p, char **expanded_values)
 		p->i += len_till_dollar(p->cpy + p->i + 1) + 1;
 	else if (p->cpy[p->i] == '$' && ft_isalpha(p->cpy[p->i + 1]))
 	{
-		append_to_value_arr(expanded_values, ft_strdup(""));
+		addtoarr(expanded_values, ft_strdup(""));
 		p->i++;
 	}
 	else
@@ -883,7 +890,7 @@ int ft_expand2(char **word, char **env, char **expanded_values)
 				if (!ft_strncmp(env[p.j], p.cpy + p.i + 1, len_till_dollar(p.cpy + p.i + 1)) && env[p.j][len_till_dollar(p.cpy + p.i + 1)] == '=')
 				{
 					p.did = 1;
-					append_to_value_arr(expanded_values, ft_strdup(env[p.j] + len_till_dollar(p.cpy + p.i + 1) + 1));
+					addtoarr(expanded_values, ft_strdup(env[p.j] + len_till_dollar(p.cpy + p.i + 1) + 1));
 					break;
 				}
 				p.j++;
@@ -913,6 +920,73 @@ char *add_char(char *str, char c)
 	return new;
 }
 
+void ft_what_will_do_1(t_params_5 *p, t_fargs *fargs, char **expanded_value)
+{
+
+	while (fargs[p->i].args[p->j][p->w])
+	{
+		if (fargs[p->i].args[p->j][p->w] == '$' && fargs[p->i].args[p->j][p->w + 1] == '?')
+		{
+			p->expanded = ft_strjoin(p->expanded, "123");
+			p->x++;
+			p->w += 3;
+		}
+		if (fargs[p->i].args[p->j][p->w] == '$' && ft_isalpha(fargs[p->i].args[p->j][p->w + 1]))
+		{
+			if (expanded_value[p->x])
+				p->expanded = ft_strjoin(p->expanded, expanded_value[p->x]);
+			p->x++;
+			p->w += len_till_dollar(fargs[p->i].args[p->j] + p->w + 1);
+		}
+		else
+		{
+			p->expanded = add_char(p->expanded,
+								   fargs[p->i].args[p->j][p->w]);
+		}
+		p->w++;
+	}
+	fargs[p->i].args[p->j] = p->expanded;
+	p->j++;
+}
+
+void ft_what_will_do_2(t_params_5 *p, t_fargs *fargs, char **expanded_value)
+{
+	if (p->j > 0 && strcmp(fargs[p->i].rdrs[p->j - 1], "<<"))
+	{
+		p->did_expand = 0;
+		while (fargs[p->i].rdrs[p->j][p->w])
+		{
+			if (fargs[p->i].rdrs[p->j][p->w] == '$' && ft_isalpha(fargs[p->i].rdrs[p->j][p->w + 1]))
+			{
+				if (expanded_value[p->x])
+					p->expanded = ft_strjoin(p->expanded, expanded_value[p->x]);
+				p->x++;
+				p->w += len_till_dollar(fargs[p->i].rdrs[p->j] + p->w + 1);
+				p->did_expand = 1;
+			}
+			else
+				p->expanded = add_char(p->expanded,
+									   fargs[p->i].rdrs[p->j][p->w]);
+			p->w++;
+		}
+		fargs[p->i].rdrs[p->j] = p->expanded;
+		p->x++;
+	}
+	else
+		p->x += how_many_dollars(fargs[p->i].rdrs[p->j]);
+	p->j++;
+}
+
+void while_1(t_params_5 *p, t_fargs *fargs, char **expanded_value)
+{
+	while (p->j < p->args_len)
+	{
+		p->expanded = ft_strdup("");
+		p->w = 0;
+		ft_what_will_do_1(p, fargs, expanded_value);
+	}
+}
+
 int ft_what_will_do(t_fargs *fargs, char **expanded_value)
 {
 	t_params_5 p;
@@ -924,67 +998,13 @@ int ft_what_will_do(t_fargs *fargs, char **expanded_value)
 		p.a_n_f_len = arr_len(fargs[p.i].rdrs);
 		p.args_len = arr_len(fargs[p.i].args);
 		p.j = 0;
-		while (p.j < p.args_len)
-		{
-			p.expanded = ft_strdup("");
-			p.w = 0;
-			while (fargs[p.i].args[p.j][p.w])
-			{
-				if (fargs[p.i].args[p.j][p.w] == '$' && fargs[p.i].args[p.j][p.w + 1] == '?')
-				{
-					p.expanded = ft_strjoin(p.expanded, "123");
-					p.x++;
-					p.w += 3;
-				}
-				if (fargs[p.i].args[p.j][p.w] == '$' && ft_isalpha(fargs[p.i].args[p.j][p.w + 1]))
-				{
-					if (expanded_value[p.x])
-						p.expanded = ft_strjoin(p.expanded, expanded_value[p.x]);
-					p.x++;
-					p.w += len_till_dollar(fargs[p.i].args[p.j] + p.w + 1);
-				}
-				else
-				{
-					p.expanded = add_char(p.expanded,
-										  fargs[p.i].args[p.j][p.w]);
-				}
-				p.w++;
-			}
-			fargs[p.i].args[p.j] = p.expanded;
-			p.j++;
-		}
+		while_1(&p, fargs, expanded_value);
 		p.j = 0;
 		while (p.j < p.a_n_f_len)
 		{
 			p.expanded = ft_strdup("");
 			p.w = 0;
-			if (p.j > 0 && strcmp(fargs[p.i].rdrs[p.j - 1], "<<"))
-			{
-				p.did_expand = 0;
-				while (fargs[p.i].rdrs[p.j][p.w])
-				{
-					if (fargs[p.i].rdrs[p.j][p.w] == '$' && ft_isalpha(fargs[p.i].rdrs[p.j][p.w + 1]))
-					{
-						p.expanded = ft_strjoin(p.expanded, expanded_value[p.x]);
-						p.x++;
-						p.w += len_till_dollar(fargs[p.i].rdrs[p.j] + p.w + 1);
-						p.did_expand = 1;
-					}
-					else
-					{
-						p.expanded = add_char(p.expanded,
-											  fargs[p.i].rdrs[p.j][p.w]);
-					}
-					p.w++;
-				}
-				fargs[p.i].rdrs[p.j] = p.expanded;
-				p.x++;
-			}
-			else
-			{
-				p.x += how_many_dollars(fargs[p.i].rdrs[p.j]);
-			}
-			p.j++;
+			ft_what_will_do_2(&p, fargs, expanded_value);
 		}
 		p.i++;
 	}
@@ -994,49 +1014,63 @@ int ft_what_will_do(t_fargs *fargs, char **expanded_value)
 
 int exit_status;
 
+void quotes_while(char **splitted, t_params_6 *p)
+{
+	while (splitted[p->i][p->j])
+	{
+		if (p->d_lock && splitted[p->i][p->j] == '\'')
+		{
+			p->j++;
+			continue;
+		}
+		else if (p->s_lock && splitted[p->i][p->j] == '"')
+		{
+			p->j++;
+			continue;
+		}
+		else if (!p->d_lock && splitted[p->i][p->j] == '"')
+			p->d_lock = 1;
+		else if (!p->s_lock && splitted[p->i][p->j] == '\'')
+			p->s_lock = 1;
+		else if (p->d_lock && splitted[p->i][p->j] == '"')
+			p->d_lock = 0;
+		else if (p->s_lock && splitted[p->i][p->j] == '\'')
+			p->s_lock = 0;
+		p->j++;
+	}
+}
+
 int ft_quotes(char **splitted)
 {
-	int i;
-	int j;
-	int s_lock;
-	int d_lock;
+	t_params_6 p;
 
-	i = 0;
-	while (splitted[i])
+	p.i = 0;
+	while (splitted[p.i])
 	{
-		s_lock = 0;
-		d_lock = 0;
-		j = 0;
-		while (splitted[i][j])
+		p.s_lock = 0;
+		p.d_lock = 0;
+		p.j = 0;
+		quotes_while(splitted, &p);
+		if (p.d_lock || p.s_lock)
 		{
-			// printf("%c--", splitted[i][j]);
-			if (d_lock && splitted[i][j] == '\'')
-			{
-				j++;
-				continue;
-			}
-			else if (s_lock && splitted[i][j] == '"')
-			{
-				j++;
-				continue;
-			}
-			else if (!d_lock && splitted[i][j] == '"')
-				d_lock = 1;
-			else if (!s_lock && splitted[i][j] == '\'')
-				s_lock = 1;
-			else if (d_lock && splitted[i][j] == '"')
-				d_lock = 0;
-			else if (s_lock && splitted[i][j] == '\'')
-				s_lock = 0;
-			j++;
-		}
-		// printf("here\n");
-		if (d_lock || s_lock)
-		{
-			// printf("did not handle quotes. <%s>\n", splitted[i]);
+			printf("did not handle quotes. <%s>\n", splitted[p.i]);
 			return 1;
 		}
-		i++;
+		p.i++;
+	}
+	return 0;
+}
+
+int rdr_while(t_fargs *fargs, int len, int i, int j)
+{
+	while (j < len)
+	{
+		if (fargs[i].types2[j] && fargs[i].types2[j - 1])
+		{
+			printf("parse error near '%s'\n", fargs[i].rdrs[j + 1]);
+			return 1;
+		}
+		j++;
 	}
 	return 0;
 }
@@ -1056,28 +1090,15 @@ int ft_check_rdr(t_fargs *fargs)
 			i++;
 			continue;
 		}
-		// printf("size == %i\n", fargs[i].types[0]);
 		if (fargs[i].types2[len - 1])
 		{
-			// printf("from 1\n");
 			printf("parse error near '\\n'\n");
 			return 1;
 		}
-		// printf("here\n");
 		j = 1;
-		while (j < len)
-		{
-			// printf("j == %i %i\n", j, fargs[i].types[j]);
-			if (fargs[i].types2[j] && fargs[i].types2[j - 1])
-			{
-				// printf("from 2\n");
-				printf("parse error near '%s'\n", fargs[i].rdrs[j + 1]);
-				return 1;
-			}
-			j++;
-		}
+		if (rdr_while(fargs, len, i, j))
+			return 1;
 		i++;
-		// printf("-------------------------------------------------\n");
 	}
 	return 0;
 }
@@ -1125,21 +1146,10 @@ void print_struct(t_fargs *fargs)
 	}
 }
 
-int check_pipes(char *line)
-{
-	int i;
-	int s_lock;
-	int d_lock;
+int check_pipes(char *line);
 
-	i = 0;
-	s_lock = 0;
-	d_lock = 0;
-	// printf("hohohohohpppp -%c-\n", line[i]);
-	if (line[i] == '|' || !line[i])
-	{
-		printf("minishell: parse error near `|'\n");
-		return (1);
-	}
+int	pipes_while(char *line, int d_lock, int s_lock, int i)
+{
 	while (line[i])
 	{
 		if (d_lock && line[i] == '\'')
@@ -1162,65 +1172,85 @@ int check_pipes(char *line)
 	return 0;
 }
 
-char **do_split(char **arr, int *types)
+int check_pipes(char *line)
 {
 	int i;
-	char **splitted;
-	char **new;
-	int len;
-	int j;
+	int s_lock;
+	int d_lock;
 
 	i = 0;
-	len = 0;
-	printf("len == %i\n", arr_len(arr));
-	while (arr[i])
+	s_lock = 0;
+	d_lock = 0;
+	if (line[i] == '|' || !line[i])
 	{
-		printf("%s-------\n", arr[i]);
-		printf("hererererere %i\n", types[i]);
-		if (types[i] == 2)
+		printf("minishell: parse error near `|'\n");
+		return (1);
+	}
+	if (pipes_while(line, d_lock, s_lock, i))
+		return 1;
+	return 0;
+}
+
+void	split_while_1(t_params_7 *p, char **arr, int *types)
+{
+	while (arr[p->i])
+	{
+		if (types[p->i] == 2)
 		{
-			splitted = ft_split(arr[i], ' ');
-			if (!splitted)
+			p->splitted = ft_split(arr[p->i], ' ');
+			if (!p->splitted)
 				exit(1);
-			len += arr_len(splitted);
-			free_arr(splitted);
+			p->len += arr_len(p->splitted);
+			free_arr(p->splitted);
 		}
 		else
-			len++;
-		i++;
+			p->len++;
+		p->i++;
 	}
-	new = (char **)malloc(sizeof(char *) * (len + 1));
-	if (!new)
-		exit(1);
-	i = 0;
-	len = 0;
-	while (arr[i])
+}
+
+void	split_while_2(t_params_7 *p, char **arr, int *types)
+{
+	while (arr[p->i])
 	{
-		if (types[i] == 2)
+		if (types[p->i] == 2)
 		{
-			splitted = ft_split(arr[i], ' ');
-			if (!splitted)
+			p->splitted = ft_split(arr[p->i], ' ');
+			if (!p->splitted)
 				exit(1);
-			j = 0;
-			while (splitted[j])
+			p->j = 0;
+			while (p->splitted[p->j])
 			{
-				new[len] = splitted[j];
-				j++;
-				len++;
+				p->new[p->len] = ft_strdup(p->splitted[p->j]);
+				p->j++;
+				p->len++;
 			}
 		}
 		else
 		{
-			new[len] = arr[i];
-			len++;
+			p->new[p->len] = ft_strdup(arr[p->i]);
+			p->len++;
 		}
-		i++;
+		p->i++;
 	}
-	new[len] = 0;
-	printf("zzzz\n");
-	print_arr2d(new, 1);
-	// free(arr);
-	return new;
+}
+
+char **do_split(char **arr, int *types)
+{
+	t_params_7 p;
+
+	p.i = 0;
+	p.len = 0;
+	split_while_1(&p, arr, types);
+	p.new = (char **)malloc(sizeof(char *) * (p.len + 1));
+	if (!p.new)
+		exit(1);
+	p.i = 0;
+	p.len = 0;
+	split_while_2(&p, arr, types);
+	p.new[p.len] = 0;
+	free_arr(arr);
+	return p.new;
 }
 
 // void sigint_handler(int signum)
