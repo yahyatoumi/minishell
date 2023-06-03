@@ -115,7 +115,6 @@ char *ft_strdup_3(char *start, int *add)
 	}
 	p.holder[p.j] = 0;
 	*add = *add + 0;
-	printf("returned %s i==%i\n", ft_strdup(p.holder), p.i);
 	return (ft_strdup(p.holder));
 }
 
@@ -132,7 +131,6 @@ t_token *make_tokens_1(char *holder, char *word_start, int *j)
 		if (!token)
 			return 0;
 		token->token_chars = ft_strdup(holder);
-		printf("token == %s\n", token->token_chars);
 		token->type = 0;
 		token->next = NULL;
 	}
@@ -140,7 +138,6 @@ t_token *make_tokens_1(char *holder, char *word_start, int *j)
 	if (!token2)
 		return 0;
 	token2->token_chars = ft_strdup_2(word_start, len_till_dollar(word_start + 1) + 1);
-	printf("token2 == %s\n", token2->token_chars);
 	token2->type = 2;
 	token2->next = NULL;
 	if (ft_strlen(holder))
@@ -161,8 +158,6 @@ t_token *make_tokens_2(char *holder, char *word_start, int *j)
 
 	token = NULL;
 	token2 = NULL;
-	printf("inko %s\n", word_start);
-	printf("holder == %s\n", holder);
 	if (ft_strlen(holder))
 	{
 		token = (t_token *)malloc(sizeof(*token));
@@ -186,7 +181,6 @@ t_token *make_tokens_2(char *holder, char *word_start, int *j)
 	else
 		token = token2;
 	*j = *j + 1;
-	// printf("here 666666666 %i\n", (int)ft_strlen(token2->token_chars));
 	return token;
 }
 
@@ -310,7 +304,7 @@ t_token *new_tok_helper_2(t_params_1 *params, int *j)
 
 int ft_newtok_2(int *j, t_params_1 *params)
 {
-	*j += 1;
+	*j += 0;
 	if (params->sign_lock)
 		return 1;
 	params->d_lock = 1;
@@ -319,7 +313,7 @@ int ft_newtok_2(int *j, t_params_1 *params)
 
 int ft_newtok_3(int *j, t_params_1 *params)
 {
-	*j += 1;
+	*j += 0;
 	if (params->sign_lock)
 		return 1;
 	params->s_lock = 1;
@@ -346,10 +340,17 @@ int ft_newtok_5(int *j, t_params_1 *params)
 
 int ft_newtok_while_3(char *str, t_params_1 *p, int *j)
 {
-	if (p->s_lock && str[p->i] == '\'')
+	if (p->d_lock && str[p->i] == '"')
+	{
+		if (ft_newtok_4(j, p))
+			return (3);
+		return (2);
+	}
+	else if (p->s_lock && str[p->i] == '\'')
 	{
 		if (ft_newtok_5(j, p))
-			return (2);
+			return (3);
+		return 2;
 	}
 	else if (str[p->i] == '$' && ft_isalpha(str[p->i + 1]) && !p->s_lock && !p->d_lock)
 		return (p->token = make_tokens_1(p->holder, str + p->i, j), 1);
@@ -370,9 +371,9 @@ int ft_newtok_while_3(char *str, t_params_1 *p, int *j)
 
 int ft_newtok_while_2(char *word_start, t_params_1 *params, int *j)
 {
-	if (params->d_lock && word_start[params->i] == '\'')
+	if (params->d_lock && word_start[params->i] == '\'' && word_start[params->i + 1] != '$')
 		return (params->holder[params->x++] = word_start[params->i], 2);
-	else if (params->s_lock && word_start[params->i] == '"')
+	else if (params->s_lock && word_start[params->i] == '"' && word_start[params->i + 1] != '$')
 		return (params->holder[params->x++] = word_start[params->i], 2);
 	else if (!params->d_lock && word_start[params->i] == '"')
 	{
@@ -383,12 +384,6 @@ int ft_newtok_while_2(char *word_start, t_params_1 *params, int *j)
 	else if (!params->s_lock && word_start[params->i] == '\'')
 	{
 		if (ft_newtok_3(j, params))
-			return (1);
-		return (2);
-	}
-	else if (params->d_lock && word_start[params->i] == '"')
-	{
-		if (ft_newtok_4(j, params))
 			return (1);
 		return (2);
 	}
@@ -412,6 +407,11 @@ t_token *ft_newtok_while(char *word_start, t_params_1 *params, int *j)
 			helper = ft_newtok_while_3(word_start, params, j);
 			if (helper == 1)
 				return params->token;
+			if (helper == 3)
+			{
+				*j -= 1;
+				return params->token;
+			}
 			if (helper)
 				break;
 		}
@@ -618,7 +618,7 @@ void replace_char(char *str, char c1, char c2)
 	}
 }
 
-void _free(t_cmd *cmds, char *input, char **splitted, t_final_args *final_args)
+void _free(t_cmd *cmds, char *input, char **splitted, t_fargs *fargs)
 {
 	t_token *t_holder;
 	t_cmd *c_holder;
@@ -641,13 +641,13 @@ void _free(t_cmd *cmds, char *input, char **splitted, t_final_args *final_args)
 	while (splitted[i])
 		free(splitted[i++]);
 	i = 0;
-	while (final_args[i].args)
+	while (fargs[i].args)
 	{
-		free(final_args[i].args);
-		free(final_args[i].arrows_n_files);
+		free(fargs[i].args);
+		free(fargs[i].rdrs);
 		i++;
 	}
-	free(final_args);
+	free(fargs);
 	free(splitted);
 	free(input);
 }
@@ -683,7 +683,7 @@ int ft_lstsize2(t_token *token)
 	return i;
 }
 
-int ft_count_arrows_n_files(t_token *start)
+int ft_count_rdrs(t_token *start)
 {
 	t_token *tmp;
 	int len;
@@ -710,19 +710,19 @@ void inside_while(t_params_3 *p)
 {
 	if (p->tmp_token->type == 1)
 	{
-		p->final_args[p->i].arrows_n_files[p->x] = p->tmp_token->token_chars;
-		p->final_args[p->i].types2[p->x++] = p->tmp_token->type;
+		p->fargs[p->i].rdrs[p->x] = p->tmp_token->token_chars;
+		p->fargs[p->i].types2[p->x++] = p->tmp_token->type;
 		if (p->tmp_token->next)
 		{
 			p->tmp_token = p->tmp_token->next;
-			p->final_args[p->i].arrows_n_files[p->x] = p->tmp_token->token_chars;
-			p->final_args[p->i].types[p->x++] = p->tmp_token->type;
+			p->fargs[p->i].rdrs[p->x] = p->tmp_token->token_chars;
+			p->fargs[p->i].types[p->x++] = p->tmp_token->type;
 		}
 	}
 	else
 	{
-		p->final_args[p->i].args[p->j++] = p->tmp_token->token_chars;
-		p->final_args[p->i].types[p->y++] = p->tmp_token->type;
+		p->fargs[p->i].args[p->j++] = p->tmp_token->token_chars;
+		p->fargs[p->i].types[p->y++] = p->tmp_token->type;
 	}
 	p->tmp_token = p->tmp_token->next;
 }
@@ -730,22 +730,21 @@ void inside_while(t_params_3 *p)
 void inside_while_0(t_params_3 *p)
 {
 	p->tmp_token = p->tmp_cmd->head_token->next;
-	p->final_args[p->i].args = (char **)malloc(sizeof(char *) * (ft_lstsize2(p->tmp_token) - ft_count_arrows_n_files(p->tmp_token) + 1));
-	p->final_args[p->i].arrows_n_files = (char **)malloc(sizeof(char *) * (ft_count_arrows_n_files(p->tmp_token) + 1));
-	p->final_args[p->i].types = (int *)malloc(sizeof(int) * (ft_lstsize2(p->tmp_token) - ft_count_arrows_n_files(p->tmp_token) + 1));
-	p->final_args[p->i].types2 = (int *)malloc(sizeof(int) * (ft_count_arrows_n_files(p->tmp_token) + 1));
+	p->fargs[p->i].args = (char **)malloc(sizeof(char *) * (ft_lstsize2(p->tmp_token) - ft_count_rdrs(p->tmp_token) + 1));
+	p->fargs[p->i].rdrs = (char **)malloc(sizeof(char *) * (ft_count_rdrs(p->tmp_token) + 1));
+	p->fargs[p->i].types = (int *)malloc(sizeof(int) * (ft_lstsize2(p->tmp_token) - ft_count_rdrs(p->tmp_token) + 1));
+	p->fargs[p->i].types2 = (int *)malloc(sizeof(int) * (ft_count_rdrs(p->tmp_token) + 1));
 	p->j = 0;
 	p->x = 0;
 	p->y = 0;
 }
 
-t_final_args *ft_argnew(t_cmd *commands)
+t_fargs *ft_argnew(t_cmd *commands)
 {
 	t_params_3 p;
 
-	p.final_args = (t_final_args *)malloc(sizeof(t_final_args)
-			* (ft_lstsize(commands) + 1));
-	if (!p.final_args)
+	p.fargs = (t_fargs *)malloc(sizeof(t_fargs) * (ft_lstsize(commands) + 1));
+	if (!p.fargs)
 		return (0);
 	p.tmp_cmd = commands;
 	p.i = 0;
@@ -754,13 +753,13 @@ t_final_args *ft_argnew(t_cmd *commands)
 		inside_while_0(&p);
 		while (p.tmp_token)
 			inside_while(&p);
-		p.final_args[p.i].args[p.j] = 0;
-		p.final_args[p.i].arrows_n_files[p.x] = 0;
+		p.fargs[p.i].args[p.j] = 0;
+		p.fargs[p.i].rdrs[p.x] = 0;
 		p.i++;
 		p.tmp_cmd = p.tmp_cmd->next;
 	}
-	p.final_args[p.i].args = 0;
-	return (p.final_args);
+	p.fargs[p.i].args = 0;
+	return (p.fargs);
 }
 
 int ft_expand(char **word, char **env)
@@ -843,49 +842,54 @@ char **cpy_env(char **env)
 	return (new_env);
 }
 
+void set_expand2_values(t_params_4 *p, char **word)
+{
+	p->i = 0;
+	p->j = 0;
+	p->did = 0;
+	p->s_lock = 0;
+	p->d_lock = 0;
+	p->cpy = *word;
+}
+
+void inside_while_expand(t_params_4 *p, char **expanded_values)
+{
+	if (p->did)
+		p->i += len_till_dollar(p->cpy + p->i + 1) + 1;
+	else if (p->cpy[p->i] == '$' && ft_isalpha(p->cpy[p->i + 1]))
+	{
+		append_to_value_arr(expanded_values, ft_strdup(""));
+		p->i++;
+	}
+	else
+		p->i++;
+}
+
 int ft_expand2(char **word, char **env, char **expanded_values)
 {
-	int i;
-	int j;
-	int did;
-	char *word_cpy;
-	int s_lock;
-	int d_lock;
+	t_params_4 p;
 
-	i = 0;
-	j = 0;
-	did = 0;
-	s_lock = 0;
-	d_lock = 0;
-	word_cpy = *word;
-	while (word_cpy[i])
+	set_expand2_values(&p, word);
+	while (p.cpy[p.i])
 	{
-		j = 0;
-		while (word_cpy[i] && word_cpy[i] != '$' && ft_isalpha(word_cpy[i + 1]))
-			i++;
-		if (word_cpy[i] == '$' && ft_isalpha(word_cpy[i + 1]))
+		p.j = 0;
+		while (p.cpy[p.i] && p.cpy[p.i] != '$' && ft_isalpha(p.cpy[p.i + 1]))
+			p.i++;
+		if (p.cpy[p.i] == '$' && ft_isalpha(p.cpy[p.i + 1]))
 		{
-			j = 0;
-			while (env[j])
+			p.j = 0;
+			while (env[p.j])
 			{
-				if (!ft_strncmp(env[j], word_cpy + i + 1, len_till_dollar(word_cpy + i + 1)) && env[j][len_till_dollar(word_cpy + i + 1)] == '=')
+				if (!ft_strncmp(env[p.j], p.cpy + p.i + 1, len_till_dollar(p.cpy + p.i + 1)) && env[p.j][len_till_dollar(p.cpy + p.i + 1)] == '=')
 				{
-					did = 1;
-					append_to_value_arr(expanded_values, ft_strdup(env[j] + len_till_dollar(word_cpy + i + 1) + 1));
+					p.did = 1;
+					append_to_value_arr(expanded_values, ft_strdup(env[p.j] + len_till_dollar(p.cpy + p.i + 1) + 1));
 					break;
 				}
-				j++;
+				p.j++;
 			}
 		}
-		if (did)
-			i += len_till_dollar(word_cpy + i + 1) + 1;
-		else if (word_cpy[i] == '$' && ft_isalpha(word_cpy[i + 1]))
-		{
-			append_to_value_arr(expanded_values, ft_strdup(""));
-			i++;
-		}
-		else
-			i++;
+		inside_while_expand(&p, expanded_values);
 	}
 	return (0);
 }
@@ -909,87 +913,82 @@ char *add_char(char *str, char c)
 	return new;
 }
 
-int ft_what_will_do(t_final_args *final_args, char **expanded_value)
+int ft_what_will_do(t_fargs *fargs, char **expanded_value)
 {
-	int i;
-	int j;
-	int x;
-	int w;
-	int args_len;
-	int a_n_f_len;
-	char *expanded;
-	int did_expand;
+	t_params_5 p;
 
-	i = 0;
-	x = 0;
-	while (final_args[i].args)
+	p.i = 0;
+	p.x = 0;
+	while (fargs[p.i].args)
 	{
-		a_n_f_len = arr_len(final_args[i].arrows_n_files);
-		args_len = arr_len(final_args[i].args);
-		j = 0;
-		while (j < args_len)
+		p.a_n_f_len = arr_len(fargs[p.i].rdrs);
+		p.args_len = arr_len(fargs[p.i].args);
+		p.j = 0;
+		while (p.j < p.args_len)
 		{
-			expanded = ft_strdup("");
-			w = 0;
-			while (final_args[i].args[j][w])
+			p.expanded = ft_strdup("");
+			p.w = 0;
+			while (fargs[p.i].args[p.j][p.w])
 			{
-				if (final_args[i].args[j][w] == '$' && final_args[i].args[j][w + 1] == '?')
+				if (fargs[p.i].args[p.j][p.w] == '$' && fargs[p.i].args[p.j][p.w + 1] == '?')
 				{
-					// exit status
-					expanded = ft_strjoin(expanded, "123");
-					x++;
-					w += 3;
+					p.expanded = ft_strjoin(p.expanded, "123");
+					p.x++;
+					p.w += 3;
 				}
-				if (final_args[i].args[j][w] == '$' && ft_isalpha(final_args[i].args[j][w + 1]))
+				if (fargs[p.i].args[p.j][p.w] == '$' && ft_isalpha(fargs[p.i].args[p.j][p.w + 1]))
 				{
-					expanded = ft_strjoin(expanded, expanded_value[x]);
-					x++;
-					w += len_till_dollar(final_args[i].args[j] + w + 1);
+					if (expanded_value[p.x])
+						p.expanded = ft_strjoin(p.expanded, expanded_value[p.x]);
+					p.x++;
+					p.w += len_till_dollar(fargs[p.i].args[p.j] + p.w + 1);
 				}
 				else
 				{
-					expanded = add_char(expanded, final_args[i].args[j][w]);
+					p.expanded = add_char(p.expanded,
+										  fargs[p.i].args[p.j][p.w]);
 				}
-				w++;
+				p.w++;
 			}
-			final_args[i].args[j] = expanded;
-			j++;
+			fargs[p.i].args[p.j] = p.expanded;
+			p.j++;
 		}
-		j = 0;
-		while (j < a_n_f_len)
+		p.j = 0;
+		while (p.j < p.a_n_f_len)
 		{
-			expanded = ft_strdup("");
-			w = 0;
-			if (j > 0 && strcmp(final_args[i].arrows_n_files[j - 1], "<<"))
+			p.expanded = ft_strdup("");
+			p.w = 0;
+			if (p.j > 0 && strcmp(fargs[p.i].rdrs[p.j - 1], "<<"))
 			{
-				did_expand = 0;
-				while (final_args[i].arrows_n_files[j][w])
+				p.did_expand = 0;
+				while (fargs[p.i].rdrs[p.j][p.w])
 				{
-					if (final_args[i].arrows_n_files[j][w] == '$' && ft_isalpha(final_args[i].arrows_n_files[j][w + 1]))
+					if (fargs[p.i].rdrs[p.j][p.w] == '$' && ft_isalpha(fargs[p.i].rdrs[p.j][p.w + 1]))
 					{
-						expanded = ft_strjoin(expanded, expanded_value[x]);
-						x++;
-						w += len_till_dollar(final_args[i].arrows_n_files[j] + w + 1);
-						did_expand = 1;
+						p.expanded = ft_strjoin(p.expanded, expanded_value[p.x]);
+						p.x++;
+						p.w += len_till_dollar(fargs[p.i].rdrs[p.j] + p.w + 1);
+						p.did_expand = 1;
 					}
 					else
 					{
-						expanded = add_char(expanded, final_args[i].arrows_n_files[j][w]);
+						p.expanded = add_char(p.expanded,
+											  fargs[p.i].rdrs[p.j][p.w]);
 					}
-					w++;
+					p.w++;
 				}
-				final_args[i].arrows_n_files[j] = expanded;
-				x++;
+				fargs[p.i].rdrs[p.j] = p.expanded;
+				p.x++;
 			}
 			else
 			{
-				x += how_many_dollars(final_args[i].arrows_n_files[j]);
+				p.x += how_many_dollars(fargs[p.i].rdrs[p.j]);
 			}
-			j++;
+			p.j++;
 		}
-		i++;
+		p.i++;
 	}
-	i = 0;
+	p.i = 0;
 	return 0;
 }
 
@@ -1042,23 +1041,23 @@ int ft_quotes(char **splitted)
 	return 0;
 }
 
-int ft_check_rdr(t_final_args *final_args)
+int ft_check_rdr(t_fargs *fargs)
 {
 	int i;
 	int j;
 	int len;
 
 	i = 0;
-	while (final_args[i].args)
+	while (fargs[i].args)
 	{
-		len = arr_len(final_args[i].arrows_n_files);
+		len = arr_len(fargs[i].rdrs);
 		if (!len)
 		{
 			i++;
 			continue;
 		}
-		// printf("size == %i\n", final_args[i].types[0]);
-		if (final_args[i].types2[len - 1])
+		// printf("size == %i\n", fargs[i].types[0]);
+		if (fargs[i].types2[len - 1])
 		{
 			// printf("from 1\n");
 			printf("parse error near '\\n'\n");
@@ -1068,11 +1067,11 @@ int ft_check_rdr(t_final_args *final_args)
 		j = 1;
 		while (j < len)
 		{
-			// printf("j == %i %i\n", j, final_args[i].types[j]);
-			if (final_args[i].types2[j] && final_args[i].types2[j - 1])
+			// printf("j == %i %i\n", j, fargs[i].types[j]);
+			if (fargs[i].types2[j] && fargs[i].types2[j - 1])
 			{
 				// printf("from 2\n");
-				printf("parse error near '%s'\n", final_args[i].arrows_n_files[j + 1]);
+				printf("parse error near '%s'\n", fargs[i].rdrs[j + 1]);
 				return 1;
 			}
 			j++;
@@ -1094,31 +1093,31 @@ void print_list(t_cmd *commands)
 		token = tmp->head_token;
 		while (token)
 		{
-			// printf("///%s type == %i\n", token->token_chars, token->type);
+			printf("///%s type == %i\n", token->token_chars, token->type);
 			token = token->next;
 		}
 		tmp = tmp->next;
 	}
 }
 
-void print_struct(t_final_args *final_args)
+void print_struct(t_fargs *fargs)
 {
 	int i;
 	int j;
 
 	i = 0;
-	while (final_args[i].args)
+	while (fargs[i].args)
 	{
 		j = 0;
-		while (final_args[i].args[j])
+		while (fargs[i].args[j])
 		{
-			printf("arg xx == |%s|\n", final_args[i].args[j]);
+			printf("arg xx == |%s|\n", fargs[i].args[j]);
 			j++;
 		}
 		j = 0;
-		while (final_args[i].arrows_n_files[j])
+		while (fargs[i].rdrs[j])
 		{
-			printf("arrs&files == |%s|\n", final_args[i].arrows_n_files[j]);
+			printf("arrs&files == |%s|\n", fargs[i].rdrs[j]);
 			j++;
 		}
 		i++;
@@ -1298,7 +1297,7 @@ int main(int c, char **v, char **env)
 	(void)v;
 	t_cmd *commands;
 	t_cmd *cmd_head_holder;
-	t_final_args *final_args;
+	t_fargs *fargs;
 	char **env_cpy = NULL;
 	char **exp;
 	char **expanded_values;
@@ -1365,32 +1364,32 @@ int main(int c, char **v, char **env)
 			}
 			i = 0;
 			commands = cmd_head_holder;
-
+			print_list(cmd_head_holder);
 			// ft_line_up(commands);
 			// ft_execution(cmd_head_holder);
-			final_args = ft_argnew(commands);
-			if (ft_check_rdr(final_args))
+			fargs = ft_argnew(commands);
+			if (ft_check_rdr(fargs))
 			{
 				// printf("hohohoho\n");
 				continue;
 			}
-			// printf("-----------------%s\n", final_args[0].arrows_n_files[0]);
-			ft_what_will_do(final_args, expanded_values);
+			// printf("-----------------%s\n", fargs[0].rdrs[0]);
+			ft_what_will_do(fargs, expanded_values);
 			i = 0;
-			print_struct(final_args);
-			while (final_args[i].args)
+			print_struct(fargs);
+			while (fargs[i].args)
 			{
-				if (final_args[i].args[0])
-					final_args[i].args = do_split(final_args[i].args, final_args[i].types);
-				if (final_args[i].arrows_n_files[0])
-					final_args[i].arrows_n_files = do_split(final_args[i].arrows_n_files, final_args[i].types2);
+				if (fargs[i].args[0])
+					fargs[i].args = do_split(fargs[i].args, fargs[i].types);
+				if (fargs[i].rdrs[0])
+					fargs[i].rdrs = do_split(fargs[i].rdrs, fargs[i].types2);
 				i++;
 			}
-			print_struct(final_args);
-			ft_execute(final_args, &env_cpy, &exp);
+			print_struct(fargs);
+			ft_execute(fargs, &env_cpy, &exp);
 			printf("status = %d\n", status);
 			// print_export(env_cpy, exp);
-			_free(cmd_head_holder, input, splited_cmds, final_args);
+			_free(cmd_head_holder, input, splited_cmds, fargs);
 		}
 	}
 }
